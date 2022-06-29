@@ -82,6 +82,11 @@ func SyntacticalEqual(X *Formula, Y *Formula) bool {
 		return true;
 	}
 
+	// (saman): why this may happen??
+	if X == nil || Y == nil {
+		return false;
+	}
+
 	if !X.IsComposite(){
 		if Y.IsComposite() || X.Literal.Identifier != Y.Literal.Identifier {
 			return false
@@ -102,7 +107,6 @@ func SyntacticalEqual(X *Formula, Y *Formula) bool {
 	X.LeftSide = Y.LeftSide
 	return true
 }
-
 
 func x_LeafMapTo (key string, value Evaluatable) map[string]*Formula {
 	result := make(map[string]*Formula)
@@ -159,10 +163,15 @@ func Destruct(X Evaluatable, Pattern Evaluatable) (map[string]*Formula, error) {
 	return nil, errors.New("No Matching Case")
 }
 
+func DestructWithString(X Evaluatable, Pattern string) (map[string]*Formula, error) {
+	F, _ := NewFormula(Pattern)
+	return Destruct(X, *F)
+}
+
 func NewFormula(format string) (*Formula, error) {
 	// fmt.Println("Asking New Formula for", format)
 
-	if matched, _ := regexp.MatchString(`^\([A-Za-z0-9>\(\)]*\)$`, format); !matched {
+	if matched, _ := regexp.MatchString(`^\([A-Za-z0-9_>\(\)]*\)$`, format); !matched {
 		return nil, errors.New("Not included in Parentheses OR Invalid Identifier")
 	}
 
@@ -211,6 +220,41 @@ func NewFormula(format string) (*Formula, error) {
 	return Then(leftSide, rightSide), nil
 }
 
-func PrintHello() {
-	fmt.Println("Hello, Modules! This is mypackage speaking!")
+func ChangeIdentifiers(X *Formula, IdentifiersMap *map[string]string) {
+	if !X.IsComposite() {
+		X.Literal.Identifier = (*IdentifiersMap)[X.Literal.Identifier]
+	} else {
+		ChangeIdentifiers(X.LeftSide, IdentifiersMap)
+		ChangeIdentifiers(X.RightSide, IdentifiersMap)
+	}
+}
+
+func ReplaceAtoms(X *Formula, ReplacementMap *map[string]*Formula) {
+	if !X.IsComposite() {
+		if replacement, present := (*ReplacementMap)[X.Literal.Identifier]; present {
+			X.LeftSide, X.RightSide, X.Literal = replacement.LeftSide, replacement.RightSide, replacement.Literal
+		}
+	} else {
+		ReplaceAtoms(X.LeftSide, ReplacementMap)
+		ReplaceAtoms(X.RightSide, ReplacementMap)
+	}
+}
+
+func NewIdentifiers(X *Formula, NewPrefix string) {
+	AtomsIdentifiers, _ := Destruct(X, X)
+
+	GeneratedIdentifiers := make(map[string]string)
+	firstFreeIndex := 0
+
+	for Identifier, _ := range AtomsIdentifiers {
+		if _, present := GeneratedIdentifiers[Identifier]; !present {
+			GeneratedIdentifiers[Identifier] = fmt.Sprintf("%v%v", NewPrefix, firstFreeIndex)
+			firstFreeIndex++;
+		}
+	}
+	ChangeIdentifiers(X, &GeneratedIdentifiers);
+}
+
+func CopyFormula (X *Formula) (*Formula, error) {
+	return NewFormula(fmt.Sprintf("%v", X))
 }
