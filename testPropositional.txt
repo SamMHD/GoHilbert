@@ -1,0 +1,49 @@
+// propositional.PrintHello()
+// fmt.Println("Salam")
+
+// p := propositional.Atom{
+// 	Identifier: "p",
+// }
+
+// q := propositional.Atom{
+// 	Identifier: "q",
+// }
+
+
+// r := propositional.Atom{
+// 	Identifier: "p",
+// }
+
+// s := propositional.Atom{
+// 	Identifier: "q",
+// }
+
+// A := propositional.Then(p, q)
+// B := propositional.Then(r, s)
+
+// fmt.Println("Salam:", propositional.SyntacticalEqual(A, B))
+
+// D := propositional.Then(A, B)
+
+
+// // fmt.Printf("p: %v %#v\n", p, &p)
+// // fmt.Printf("p: %v %#v\n", q, &q)
+
+// // A := propositional.Then(p, q);
+// // fmt.Printf("A: %v %#v\n", A, &A)
+// // fmt.Printf("p: %v %#v\n", p, &p)
+
+// // B := propositional.Then(A, A);
+// // fmt.Printf("B: %v %#v\n", B, &B)
+
+// C, err := propositional.NewFormula("(((f)>(g))>((A)>(g)))")
+// if err == nil {
+// 	fmt.Println("C:", C)
+// 	fmt.Printf("%#v\n", C)
+// } else {
+// 	fmt.Println("ERR:", err)
+// 	return
+// }
+
+// m, err := propositional.Destruct(D, C)
+// fmt.Println(m, err)
