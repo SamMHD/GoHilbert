@@ -18,8 +18,20 @@ import (
 var ProofPatterns [][]*propositional.Formula
 var PatternsTrie *trie.PathTrie
 
+var TimeOfBasicArrowCheck int64;
+var TimeOfArrowDestruction int64;
+var TimeOfHardCopy int64;
+var TimeOfAtomRespacing int64;
+var TimeOfDecomposition int64;
+var TimeOfFinalPush int64;
+var inMergeTime int64;
+
+
 func _Merge(order int, A *propositional.Formula, A_then_C *propositional.Formula) {
 	// fmt.Println("Checking:", A, " and ", A_then_C)
+	overallCheckpoint := time.Now()
+	checkpoint := time.Now()
+
 
 	decomposition, err := propositional.DestructWithString(A_then_C, "((Ant)>(Con))");
 	if err != nil {
@@ -28,14 +40,23 @@ func _Merge(order int, A *propositional.Formula, A_then_C *propositional.Formula
 	antecedent := decomposition["Ant"]
 	consequent := decomposition["Con"]
 
+	TimeOfBasicArrowCheck += time.Since(checkpoint).Microseconds()
+	checkpoint = time.Now()
+
 	if _, err := propositional.Destruct(A, antecedent); err != nil {
 		return
 	}
+
+	TimeOfArrowDestruction += time.Since(checkpoint).Microseconds()
+	checkpoint = time.Now()
 
 	// make sure to make a new formula tree
 	A_then_C, _ = propositional.CopyFormula(A_then_C)
 	propositional.NewIdentifiers(A_then_C, "Q_TMP_")
 	
+	TimeOfHardCopy += time.Since(checkpoint).Microseconds()
+	checkpoint = time.Now()
+
 	decomposition, _ = propositional.DestructWithString(A_then_C, "((Ant)>(Con))")
 	antecedent = decomposition["Ant"]
 	consequent = decomposition["Con"]
@@ -46,11 +67,17 @@ func _Merge(order int, A *propositional.Formula, A_then_C *propositional.Formula
 	}
 	propositional.ReplaceAtoms(consequent, &replacementMap)
 
+	TimeOfAtomRespacing += time.Since(checkpoint).Microseconds()
+	checkpoint = time.Now()
+
 	consequent, err = propositional.CopyFormula(consequent)
 	propositional.NewIdentifiers(consequent, "P")
 	if err != nil {
 		return
 	}
+
+	TimeOfDecomposition += time.Since(checkpoint).Microseconds()
+	checkpoint = time.Now()
 
 	if PatternsTrie.Get(consequent.String()) != nil {
 		return
@@ -59,6 +86,11 @@ func _Merge(order int, A *propositional.Formula, A_then_C *propositional.Formula
 	PatternsTrie.Put(consequent.String(), true)
 	// fmt.Printf("New Pattern at order=%v  -->  %v\n", order, consequent)
 	ProofPatterns[order] = append(ProofPatterns[order], consequent)
+
+	TimeOfFinalPush += time.Since(checkpoint).Microseconds()
+	checkpoint = time.Now()
+
+	inMergeTime += time.Since(overallCheckpoint).Microseconds()
 }
 
 func Merge(order int, X *propositional.Formula, Y *propositional.Formula) {
@@ -103,9 +135,12 @@ func main()  {
 			return false;
 		});
 
-		elapsed := time.Since(start)
+		elapsed := time.Since(start).Milliseconds()
 		fmt.Println("-----------------------------------------------------------------------------------------------")
-		fmt.Printf("Finalizing order %v at %v members took %s for %v iterations\n", order, len(ProofPatterns[order]), elapsed, iterations)
-		fmt.Println("===============================================================================================", "\n")
+		fmt.Printf("Finalizing order %v at %v members took %v for %v iterations\n", order, len(ProofPatterns[order]), elapsed, iterations)
+		fmt.Printf("--Time Analysis--\nTimeOfBasicArrowCheck: %v\nTimeOfArrowDestruction: %v\nTimeOfHardCopy: %v\nTimeOfAtomRespacing: %v\nTimeOfDecomposition: %v\nTimeOfFinalPush: %v\n", TimeOfBasicArrowCheck, TimeOfArrowDestruction, TimeOfHardCopy, TimeOfAtomRespacing, TimeOfDecomposition, TimeOfFinalPush)
+		fmt.Printf("OVERALL IN FUNCTION TIME: %v\n", inMergeTime)
+		fmt.Println("===============================================================================================")
+		fmt.Println("")
 	}
 }
