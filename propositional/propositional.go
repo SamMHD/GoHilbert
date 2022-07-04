@@ -11,6 +11,10 @@ type Atom struct {
 	parent *Formula
 }
 
+func (p Atom) ArrowCount() int {
+	return 0
+}
+
 func (p Atom) IsComposite() bool {
 	return false
 }
@@ -28,6 +32,7 @@ func (p Atom) MakeFormula() *Formula {
 		LeftSide: nil,
 		RightSide: nil,
 		Literal: &p,
+		arrowCount: 0,
 	}
 	return p.parent
 }
@@ -40,6 +45,11 @@ type Formula struct {
 	LeftSide *Formula
 	RightSide *Formula
 	Literal *Atom
+	arrowCount int
+}
+
+func (A Formula) ArrowCount() int {
+	return A.arrowCount;
 }
 
 func (A Formula) IsComposite() bool {
@@ -67,6 +77,7 @@ func (F Formula) MakeFormula() *Formula {
 type Evaluatable interface {
 	MakeFormula() *Formula
 	IsComposite() bool
+	ArrowCount() int
 }
 
 func Then(X Evaluatable, Y Evaluatable) *Formula {
@@ -74,6 +85,7 @@ func Then(X Evaluatable, Y Evaluatable) *Formula {
 		Literal: nil,
 		LeftSide: X.MakeFormula(),
 		RightSide: Y.MakeFormula(),
+		arrowCount: X.ArrowCount() + Y.ArrowCount() + 1,
 	}
 }
 
@@ -117,6 +129,11 @@ func x_LeafMapTo (key string, value Evaluatable) map[string]*Formula {
 
 func Destruct(X Evaluatable, Pattern Evaluatable) (map[string]*Formula, error) {
 	// fmt.Println("pattern:", Pattern,"\nX:", X)
+	if X.ArrowCount() < Pattern.ArrowCount() {
+		// fmt.Println("You were right")
+		return nil, errors.New("Incompatible Number of Arrows Detected")
+	}
+
 	switch Pattern.(type) {
 	case Atom, Formula:
 		return Destruct(X, Pattern.MakeFormula())
